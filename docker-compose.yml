@@ -1,0 +1,205 @@
+# =============================================================================
+# AI Proposal Generator - Docker Compose Configuration
+# Version: 1.0.0
+# Target: macOS Apple Silicon (arm64) Local Development
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # PostgreSQL 16 with pgvector Extension
+  # ===========================================================================
+  postgres-db:
+    image: pgvector/pgvector:pg16
+    container_name: aipg-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aipg_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aipg_secret_2024}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_proposal_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./backend/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aipg_user} -d ${POSTGRES_DB:-ai_proposal_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - aipg-network
+
+  # ===========================================================================
+  # Redis - Cache & Message Queue
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: aipg-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aipg-network
+
+  # ===========================================================================
+  # MinIO - S3 Compatible Object Storage
+  # ===========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: aipg-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aipg_minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-aipg_minio_secret_2024}
+    volumes:
+      - ./data/minio:/data
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - aipg-network
+
+  # ===========================================================================
+  # MinIO Client - Initialize Buckets
+  # ===========================================================================
+  minio-init:
+    image: minio/mc:latest
+    container_name: aipg-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set aipg http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+      mc mb --ignore-existing aipg/tender-documents;
+      mc mb --ignore-existing aipg/project-assets;
+      mc mb --ignore-existing aipg/templates;
+      mc mb --ignore-existing aipg/exports;
+      mc anonymous set download aipg/exports;
+      echo 'MinIO buckets initialized successfully';
+      exit 0;
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aipg_minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-aipg_minio_secret_2024}
+    networks:
+      - aipg-network
+
+  # ===========================================================================
+  # FastAPI Backend
+  # ===========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aipg-backend
+    restart: unless-stopped
+    environment:
+      # Database
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-aipg_user}:${POSTGRES_PASSWORD:-aipg_secret_2024}@postgres-db:5432/${POSTGRES_DB:-ai_proposal_db}
+      DATABASE_URL_SYNC: postgresql://${POSTGRES_USER:-aipg_user}:${POSTGRES_PASSWORD:-aipg_secret_2024}@postgres-db:5432/${POSTGRES_DB:-ai_proposal_db}
+      
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+      
+      # MinIO
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-aipg_minio_admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-aipg_minio_secret_2024}
+      MINIO_SECURE: "false"
+      
+      # JWT
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-super-secret-jwt-key-change-in-production}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      
+      # AI APIs (Optional - can be set later)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      
+      # App
+      APP_ENV: development
+      DEBUG: "true"
+      LOG_LEVEL: INFO
+    volumes:
+      - ./backend/app:/app/app:ro
+      - ./data/uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - aipg-network
+
+  # ===========================================================================
+  # Vue 3 Frontend (Development Server)
+  # ===========================================================================
+  frontend:
+    image: node:20-alpine
+    container_name: aipg-frontend
+    restart: unless-stopped
+    working_dir: /app
+    command: >
+      /bin/sh -c "
+      if [ ! -d node_modules ]; then
+        echo 'Installing dependencies...';
+        npm install;
+      fi;
+      npm run dev -- --host 0.0.0.0;
+      "
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+      VITE_MINIO_URL: http://localhost:9000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - aipg-network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  aipg-network:
+    driver: bridge
+    name: aipg-network
+
+# =============================================================================
+# Named Volumes (Optional - we use bind mounts for easier access)
+# =============================================================================
+# volumes:
+#   postgres-data:
+#   redis-data:
+#   minio-data:
