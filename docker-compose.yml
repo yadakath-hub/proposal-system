@@ -168,7 +168,7 @@ services:
     working_dir: /app
     command: >
       /bin/sh -c "
-      if [ ! -d node_modules ]; then
+      if [ ! -d node_modules/vite ]; then
         echo 'Installing dependencies...';
         npm install;
       fi;

@@ -107,11 +107,15 @@ async def root():
 
 
 # =============================================================================
-# API Routes (To be implemented in Phase 2)
+# API Routes
 # =============================================================================
-# from app.api.v1.endpoints import auth, users, projects, sections, ai, files, export
-# app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
-# ...
+from app.api.v1.endpoints import auth
+
+app.include_router(
+    auth.router,
+    prefix=f"{settings.API_V1_PREFIX}/auth",
+    tags=["Authentication"],
+)
 
 
 if __name__ == "__main__":
