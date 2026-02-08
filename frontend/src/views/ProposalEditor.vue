@@ -5,6 +5,7 @@
       :project="project"
       :progress="proposalStore.progress"
       @import-structure="showImportDialog = true"
+      @analyze-requirements="showRequirementDialog = true"
       @toggle-mode="proposalStore.toggleEditMode"
       @export="showExportDialog = true"
     />
@@ -66,6 +67,13 @@
       @imported="handleStructureImported"
     />
 
+    <!-- 需求分析 Dialog -->
+    <RequirementAnalyzeDialog
+      v-model:visible="showRequirementDialog"
+      :project-id="projectId"
+      @analyzed="handleRequirementAnalyzed"
+    />
+
     <!-- 匯出 Dialog -->
     <ExportDialog
       v-model:visible="showExportDialog"
@@ -89,6 +97,7 @@ import SectionTree from '@/components/proposal/SectionTree.vue'
 import SectionEditorPanel from '@/components/proposal/SectionEditorPanel.vue'
 import ContentPreview from '@/components/proposal/ContentPreview.vue'
 import ImportStructureDialog from '@/components/proposal/ImportStructureDialog.vue'
+import RequirementAnalyzeDialog from '@/components/proposal/RequirementAnalyzeDialog.vue'
 import ExportDialog from '@/components/export/ExportDialog.vue'
 
 const route = useRoute()
@@ -100,6 +109,7 @@ const projectId = computed(() => route.params.projectId)
 const project = computed(() => projectStore.currentProject)
 
 const showImportDialog = ref(false)
+const showRequirementDialog = ref(false)
 const showExportDialog = ref(false)
 const previewMode = ref('render')
 
@@ -180,6 +190,10 @@ function handleGenerate() {
 function handleStructureImported() {
   loadData()
   ElMessage.success('章節架構已匯入')
+}
+
+function handleRequirementAnalyzed() {
+  ElMessage.success('需求分析完成，已自動關聯至對應章節')
 }
 
 onMounted(() => {

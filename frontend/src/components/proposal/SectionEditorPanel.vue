@@ -27,6 +27,12 @@
         </el-button>
       </el-card>
 
+      <!-- 關聯需求 -->
+      <SectionRequirements
+        :section-id="section.id"
+        :project-id="projectId"
+      />
+
       <!-- 該案特定需求說明 -->
       <el-card shadow="never">
         <template #header>
@@ -86,6 +92,7 @@
 import { reactive, watch } from 'vue'
 import { InfoFilled, Edit, Document, MagicStick, PictureFilled, Check } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
+import SectionRequirements from '@/components/proposal/SectionRequirements.vue'
 
 const props = defineProps({
   section: { type: Object, required: true },

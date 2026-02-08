@@ -19,6 +19,10 @@
         匯入章節架構
       </el-button>
 
+      <el-button type="warning" :icon="Search" @click="$emit('analyze-requirements')">
+        分析招標需求
+      </el-button>
+
       <el-button :icon="Edit" @click="$emit('toggle-mode')">
         編輯模式
       </el-button>
@@ -42,12 +46,12 @@
 </template>
 
 <script setup>
-import { ArrowLeft, Document, Upload, Edit, Download } from '@element-plus/icons-vue'
+import { ArrowLeft, Document, Upload, Edit, Download, Search } from '@element-plus/icons-vue'
 
 defineProps({
   project: Object,
   progress: { type: Number, default: 0 }
 })
 
-defineEmits(['import-structure', 'toggle-mode', 'export'])
+defineEmits(['import-structure', 'toggle-mode', 'export', 'analyze-requirements'])
 </script>
