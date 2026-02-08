@@ -19,7 +19,9 @@ async def lifespan(app: FastAPI):
     print(f"   Environment: {settings.APP_ENV}")
     print(f"   Debug: {settings.DEBUG}")
     yield
-    # Shutdown
+    # Shutdown — close LLM provider connections
+    from app.services.llm_providers import close_all_providers
+    await close_all_providers()
     print(f"👋 Shutting down {settings.APP_NAME}")
 
 
@@ -109,12 +111,37 @@ async def root():
 # =============================================================================
 # API Routes
 # =============================================================================
-from app.api.v1.endpoints import auth
+from app.api.v1.endpoints import auth, projects, sections, ai, personas, usage
 
 app.include_router(
     auth.router,
     prefix=f"{settings.API_V1_PREFIX}/auth",
     tags=["Authentication"],
+)
+app.include_router(
+    projects.router,
+    prefix=f"{settings.API_V1_PREFIX}/projects",
+    tags=["Projects"],
+)
+app.include_router(
+    sections.router,
+    prefix=f"{settings.API_V1_PREFIX}/sections",
+    tags=["Sections"],
+)
+app.include_router(
+    ai.router,
+    prefix=f"{settings.API_V1_PREFIX}/ai",
+    tags=["AI"],
+)
+app.include_router(
+    personas.router,
+    prefix=f"{settings.API_V1_PREFIX}/personas",
+    tags=["Personas"],
+)
+app.include_router(
+    usage.router,
+    prefix=f"{settings.API_V1_PREFIX}/usage",
+    tags=["Usage"],
 )
 
 

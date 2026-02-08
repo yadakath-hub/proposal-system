@@ -76,12 +76,13 @@ class Settings(BaseSettings):
     # =========================================================================
     # AI API Settings
     # =========================================================================
+    ANTHROPIC_API_KEY: Optional[str] = Field(default=None)
     OPENAI_API_KEY: Optional[str] = Field(default=None)
     OPENAI_DEFAULT_MODEL: str = Field(default="gpt-4o")
     OPENAI_EMBEDDING_MODEL: str = Field(default="text-embedding-3-small")
-    
+
     GOOGLE_API_KEY: Optional[str] = Field(default=None)
-    GEMINI_DEFAULT_MODEL: str = Field(default="gemini-1.5-pro")
+    GEMINI_DEFAULT_MODEL: str = Field(default="gemini-2.5-flash")
     
     AI_DEFAULT_MAX_TOKENS: int = Field(default=4096)
     AI_DEFAULT_TEMPERATURE: float = Field(default=0.7)
