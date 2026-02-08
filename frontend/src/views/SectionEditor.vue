@@ -14,6 +14,10 @@
       <div class="flex items-center gap-2">
         <el-tag v-if="hasUnsavedChanges" type="warning" size="small">未儲存</el-tag>
         <el-tag v-else type="success" size="small">已儲存</el-tag>
+        <el-button @click="searchDocuments">
+          <el-icon class="mr-1"><Search /></el-icon>
+          搜尋文件
+        </el-button>
         <el-button type="primary" :loading="saving" @click="saveContent">
           <el-icon class="mr-1"><Check /></el-icon>
           儲存
@@ -37,60 +41,33 @@
           <el-input
             v-model="content"
             type="textarea"
-            :rows="25"
-            placeholder="在此輸入章節內容..."
-            @input="onContentChange"
+            :rows="30"
+            placeholder="在此輸入章節內容，或使用右側 AI 助手生成..."
           />
         </el-card>
       </div>
 
-      <!-- Right: AI assistant panel + version history -->
-      <div class="w-96 border-l bg-gray-50 p-4 overflow-auto">
-        <el-card>
-          <template #header>
-            <div class="flex items-center gap-2">
-              <el-icon><MagicStick /></el-icon>
-              <span>AI 助手</span>
-            </div>
-          </template>
-          <el-empty description="AI 助手功能將在 Phase 7-3 實作" :image-size="80" />
-        </el-card>
-
-        <!-- Version history -->
-        <el-card class="mt-4">
-          <template #header>
-            <div class="flex items-center gap-2">
-              <el-icon><Clock /></el-icon>
-              <span>版本歷史</span>
-            </div>
-          </template>
-          <el-timeline v-if="versions.length > 0">
-            <el-timeline-item
-              v-for="version in versions.slice(0, 5)"
-              :key="version.id"
-              :timestamp="formatDate(version.created_at)"
-              placement="top"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-medium">版本 {{ version.version_number }}</p>
-                  <p class="text-xs text-gray-500">{{ version.source_type }}</p>
-                </div>
-                <el-button
-                  v-if="section?.current_version_id !== version.id"
-                  size="small"
-                  @click="restoreVersion(version)"
-                >
-                  還原
-                </el-button>
-                <el-tag v-else size="small" type="success">目前</el-tag>
-              </div>
-            </el-timeline-item>
-          </el-timeline>
-          <el-empty v-else description="尚無版本記錄" :image-size="60" />
-        </el-card>
+      <!-- Right: AI assistant panel -->
+      <div class="w-[420px] border-l bg-gray-50 p-4 overflow-auto">
+        <AiAssistPanel
+          ref="aiPanelRef"
+          :project-id="projectId"
+          :section-id="sectionId"
+          :section-title="section?.title || ''"
+          :current-content="content"
+          section-level="L1"
+          @apply="applyAiContent"
+        />
       </div>
     </div>
+
+    <!-- RAG search dialog -->
+    <el-dialog v-model="searchDialogVisible" title="搜尋相關文件" width="600px">
+      <RagSearch
+        :project-id="projectId"
+        @select="onRagSelect"
+      />
+    </el-dialog>
   </div>
 </template>
 
@@ -100,7 +77,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
 import { sectionApi } from '@/api/sections'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Check, MagicStick, Clock } from '@element-plus/icons-vue'
+import AiAssistPanel from '@/components/editor/AiAssistPanel.vue'
+import RagSearch from '@/components/document/RagSearch.vue'
+import { ArrowLeft, Check, Search } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -113,7 +92,8 @@ const loading = ref(false)
 const saving = ref(false)
 const content = ref('')
 const originalContent = ref('')
-const versions = ref([])
+const searchDialogVisible = ref(false)
+const aiPanelRef = ref()
 
 const project = computed(() => projectStore.currentProject)
 const section = computed(() => projectStore.currentSection)
@@ -130,56 +110,36 @@ async function fetchData() {
 
     // Load current version content
     if (section.value?.current_version_id) {
-      await loadVersionContent(section.value.current_version_id)
+      const versionsResp = await sectionApi.getVersions(sectionId.value)
+      const versions = versionsResp.data || []
+      const currentVer = versions.find(v => v.id === section.value.current_version_id)
+      if (currentVer) {
+        content.value = currentVer.content || ''
+        originalContent.value = content.value
+      }
     } else {
       content.value = ''
       originalContent.value = ''
-    }
-
-    // Load version history
-    try {
-      const response = await sectionApi.getVersions(sectionId.value)
-      versions.value = response.data || []
-    } catch {
-      versions.value = []
     }
   } finally {
     loading.value = false
   }
 }
 
-async function loadVersionContent(versionId) {
-  // Find content from versions list, or load all versions
-  const versionsResp = await sectionApi.getVersions(sectionId.value)
-  versions.value = versionsResp.data || []
-  const ver = versions.value.find(v => v.id === versionId)
-  if (ver) {
-    content.value = ver.content || ''
-    originalContent.value = content.value
-  }
-}
-
-function onContentChange() {
-  // Could add autosave logic here
-}
-
 async function saveContent() {
   saving.value = true
   try {
-    // Create a new version with the content
+    // Create a new version
     const response = await sectionApi.createVersion(sectionId.value, {
       content: content.value,
       source_type: 'Human'
     })
-    originalContent.value = content.value
-
-    // Update versions list
-    versions.value.unshift(response.data)
 
     // Set as current version
     await sectionApi.setCurrentVersion(sectionId.value, response.data.id)
     await projectStore.fetchSection(sectionId.value)
 
+    originalContent.value = content.value
     ElMessage.success('儲存成功')
   } catch {
     ElMessage.error('儲存失敗')
@@ -188,28 +148,37 @@ async function saveContent() {
   }
 }
 
-async function restoreVersion(version) {
-  try {
-    await ElMessageBox.confirm(
-      `確定要還原到版本 ${version.version_number} 嗎？`,
-      '還原確認',
-      { type: 'warning' }
-    )
-    content.value = version.content || ''
-    await sectionApi.setCurrentVersion(sectionId.value, version.id)
-    await projectStore.fetchSection(sectionId.value)
-    originalContent.value = content.value
-    ElMessage.success('已還原')
-  } catch (e) {
-    if (e !== 'cancel') ElMessage.error('還原失敗')
+function applyAiContent(aiContent) {
+  if (content.value) {
+    ElMessageBox.confirm('要取代現有內容還是附加到後面？', '應用方式', {
+      distinguishCancelAndClose: true,
+      confirmButtonText: '取代',
+      cancelButtonText: '附加'
+    }).then(() => {
+      content.value = aiContent
+    }).catch((action) => {
+      if (action === 'cancel') {
+        content.value = content.value + '\n\n' + aiContent
+      }
+    })
+  } else {
+    content.value = aiContent
   }
+}
+
+function searchDocuments() {
+  searchDialogVisible.value = true
+}
+
+function onRagSelect(results) {
+  searchDialogVisible.value = false
+  aiPanelRef.value?.setRagContext(results)
+  ElMessage.success(`已加入 ${results.length} 段參考內容`)
 }
 
 function goBack() {
   if (hasUnsavedChanges.value) {
     ElMessageBox.confirm('有未儲存的變更，確定要離開嗎？', '提示', {
-      confirmButtonText: '離開',
-      cancelButtonText: '取消',
       type: 'warning'
     }).then(() => {
       router.push(`/projects/${projectId.value}`)
@@ -217,11 +186,6 @@ function goBack() {
   } else {
     router.push(`/projects/${projectId.value}`)
   }
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('zh-TW')
 }
 
 onMounted(() => {

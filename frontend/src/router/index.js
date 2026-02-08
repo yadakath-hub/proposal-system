@@ -46,6 +46,12 @@ const routes = [
         name: 'SectionEditor',
         component: () => import('@/views/SectionEditor.vue'),
         meta: { title: '章節編輯' }
+      },
+      {
+        path: 'documents',
+        name: 'Documents',
+        component: () => import('@/views/Documents.vue'),
+        meta: { title: '文件管理' }
       }
     ]
   },

@@ -12,8 +12,7 @@
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item :icon="Edit" @click="showEditProject">編輯專案</el-dropdown-item>
-            <el-dropdown-item :icon="Download" @click="exportProject('docx')">匯出 DOCX</el-dropdown-item>
-            <el-dropdown-item :icon="Download" @click="exportProject('pdf')">匯出 PDF</el-dropdown-item>
+            <el-dropdown-item :icon="Download" @click="showExportDialog">匯出建議書</el-dropdown-item>
             <el-dropdown-item :icon="Delete" divided @click="confirmDeleteProject">
               刪除專案
             </el-dropdown-item>
@@ -87,6 +86,14 @@
       :projectId="projectId"
       @saved="onSectionSaved"
     />
+
+    <!-- Export dialog -->
+    <ExportDialog
+      v-model:visible="exportDialogVisible"
+      :projectId="projectId"
+      :sections="sections"
+      @exported="fetchData"
+    />
   </div>
 </template>
 
@@ -98,6 +105,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import ProjectForm from '@/components/project/ProjectForm.vue'
 import SectionList from '@/components/section/SectionList.vue'
 import SectionForm from '@/components/section/SectionForm.vue'
+import ExportDialog from '@/components/export/ExportDialog.vue'
 import { ArrowLeft, Plus, Edit, Delete, Download, More } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -109,6 +117,7 @@ const loading = ref(false)
 const projectDialogVisible = ref(false)
 const sectionDialogVisible = ref(false)
 const editingSection = ref(null)
+const exportDialogVisible = ref(false)
 
 const project = computed(() => projectStore.currentProject)
 const sections = computed(() => projectStore.sortedSections)
@@ -207,8 +216,8 @@ function onSectionSaved() {
   projectStore.fetchSections(projectId.value)
 }
 
-function exportProject(format) {
-  ElMessage.info(`匯出 ${format.toUpperCase()} 功能將在後續 Phase 實作`)
+function showExportDialog() {
+  exportDialogVisible.value = true
 }
 
 onMounted(() => {
