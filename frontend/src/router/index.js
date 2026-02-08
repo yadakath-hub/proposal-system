@@ -28,6 +28,24 @@ const routes = [
         name: 'Dashboard',
         component: () => import('@/views/Dashboard.vue'),
         meta: { title: '儀表板' }
+      },
+      {
+        path: 'projects',
+        name: 'ProjectList',
+        component: () => import('@/views/ProjectList.vue'),
+        meta: { title: '專案列表' }
+      },
+      {
+        path: 'projects/:projectId',
+        name: 'ProjectDetail',
+        component: () => import('@/views/ProjectDetail.vue'),
+        meta: { title: '專案詳情' }
+      },
+      {
+        path: 'projects/:projectId/sections/:sectionId',
+        name: 'SectionEditor',
+        component: () => import('@/views/SectionEditor.vue'),
+        meta: { title: '章節編輯' }
       }
     ]
   },
