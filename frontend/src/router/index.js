@@ -52,6 +52,12 @@ const routes = [
         name: 'Documents',
         component: () => import('@/views/Documents.vue'),
         meta: { title: '文件管理' }
+      },
+      {
+        path: 'projects/:projectId/editor',
+        name: 'ProposalEditor',
+        component: () => import('@/views/ProposalEditor.vue'),
+        meta: { title: '建議書編輯器', fullscreen: true }
       }
     ]
   },

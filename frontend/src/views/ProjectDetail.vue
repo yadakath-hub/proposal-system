@@ -48,6 +48,20 @@
       </el-col>
     </el-row>
 
+    <!-- 進入編輯器按鈕 -->
+    <el-card class="mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-bold text-lg">建議書編輯器</h3>
+          <p class="text-gray-500 text-sm mt-1">三欄式專業編輯介面，支援章節樹瀏覽、即時編輯與內容預覽</p>
+        </div>
+        <el-button type="primary" size="large" @click="enterEditor">
+          <el-icon class="mr-2"><Edit /></el-icon>
+          進入建議書編輯器
+        </el-button>
+      </div>
+    </el-card>
+
     <!-- Section list -->
     <el-card>
       <template #header>
@@ -218,6 +232,10 @@ function onSectionSaved() {
 
 function showExportDialog() {
   exportDialogVisible.value = true
+}
+
+function enterEditor() {
+  router.push(`/projects/${projectId.value}/editor`)
 }
 
 onMounted(() => {

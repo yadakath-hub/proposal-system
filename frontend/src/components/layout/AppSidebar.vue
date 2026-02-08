@@ -1,6 +1,6 @@
 <template>
   <el-aside
-    :width="uiStore.sidebarCollapsed ? '64px' : '220px'"
+    :width="uiStore.sidebarCollapsed ? '64px' : '200px'"
     class="bg-gray-800 transition-all duration-300"
   >
     <div class="h-14 flex items-center justify-center border-b border-gray-700">
