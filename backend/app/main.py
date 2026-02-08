@@ -111,7 +111,7 @@ async def root():
 # =============================================================================
 # API Routes
 # =============================================================================
-from app.api.v1.endpoints import auth, projects, sections, ai, personas, usage
+from app.api.v1.endpoints import auth, projects, sections, ai, personas, usage, documents
 
 app.include_router(
     auth.router,
@@ -142,6 +142,11 @@ app.include_router(
     usage.router,
     prefix=f"{settings.API_V1_PREFIX}/usage",
     tags=["Usage"],
+)
+app.include_router(
+    documents.router,
+    prefix=f"{settings.API_V1_PREFIX}/documents",
+    tags=["Documents"],
 )
 
 
