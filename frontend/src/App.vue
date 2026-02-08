@@ -1,21 +1,9 @@
 <template>
-  <n-config-provider :theme="darkTheme" :locale="zhTW" :date-locale="dateZhTW">
-    <n-message-provider>
-      <n-dialog-provider>
-        <router-view />
-      </n-dialog-provider>
-    </n-message-provider>
-  </n-config-provider>
+  <el-config-provider :locale="zhTw">
+    <router-view />
+  </el-config-provider>
 </template>
 
-<script setup lang="ts">
-import { darkTheme, zhTW, dateZhTW } from 'naive-ui'
+<script setup>
+import zhTw from 'element-plus/dist/locale/zh-tw.mjs'
 </script>
-
-<style>
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #18181c;
-}
-</style>
