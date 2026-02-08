@@ -54,6 +54,12 @@ const routes = [
         meta: { title: '文件管理' }
       },
       {
+        path: 'templates',
+        name: 'Templates',
+        component: () => import('@/views/Templates.vue'),
+        meta: { title: '範本庫' }
+      },
+      {
         path: 'projects/:projectId/editor',
         name: 'ProposalEditor',
         component: () => import('@/views/ProposalEditor.vue'),

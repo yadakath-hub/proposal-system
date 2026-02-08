@@ -111,7 +111,7 @@ async def root():
 # =============================================================================
 # API Routes
 # =============================================================================
-from app.api.v1.endpoints import auth, projects, sections, ai, personas, usage, documents, exports, structure, requirements
+from app.api.v1.endpoints import auth, projects, sections, ai, personas, usage, documents, exports, structure, requirements, section_templates
 
 app.include_router(
     auth.router,
@@ -162,6 +162,11 @@ app.include_router(
     requirements.router,
     prefix=f"{settings.API_V1_PREFIX}/requirements",
     tags=["Requirements"],
+)
+app.include_router(
+    section_templates.router,
+    prefix=f"{settings.API_V1_PREFIX}/section-templates",
+    tags=["Section Templates"],
 )
 
 

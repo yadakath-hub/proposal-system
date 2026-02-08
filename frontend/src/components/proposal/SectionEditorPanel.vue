@@ -49,6 +49,14 @@
         />
       </el-card>
 
+      <!-- AI 範本推薦 -->
+      <TemplateRecommendPanel
+        :section-id="section.id"
+        :section-title="section.title"
+        :requirement-content="form.requirement"
+        @apply="handleTemplateApply"
+      />
+
       <!-- 內容編輯 -->
       <el-card shadow="never">
         <template #header>
@@ -93,6 +101,7 @@ import { reactive, watch } from 'vue'
 import { InfoFilled, Edit, Document, MagicStick, PictureFilled, Check } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import SectionRequirements from '@/components/proposal/SectionRequirements.vue'
+import TemplateRecommendPanel from '@/components/proposal/TemplateRecommendPanel.vue'
 
 const props = defineProps({
   section: { type: Object, required: true },
@@ -119,6 +128,10 @@ function handleSave() {
     requirement_text: form.requirement,
     content: form.content
   })
+}
+
+function handleTemplateApply(content) {
+  form.content = content
 }
 
 function clearContent() {

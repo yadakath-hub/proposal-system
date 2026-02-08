@@ -6,10 +6,12 @@ from app.models.usage_log import UsageLog
 from app.models.document import Document, DocumentEmbedding
 from app.models.export_template import Template, ExportHistory
 from app.models.requirement import ProjectRequirement, SectionRequirementLink
+from app.models.section_template import SectionTemplate, TemplateVersion, TemplateUsageLog
 
 __all__ = [
     "User", "Project", "ProjectMember", "Section", "SectionVersion",
     "AiPersona", "UsageLog", "Document", "DocumentEmbedding",
     "Template", "ExportHistory",
     "ProjectRequirement", "SectionRequirementLink",
+    "SectionTemplate", "TemplateVersion", "TemplateUsageLog",
 ]

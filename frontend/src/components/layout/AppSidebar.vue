@@ -34,6 +34,11 @@
         <template #title>文件管理</template>
       </el-menu-item>
 
+      <el-menu-item index="/templates">
+        <el-icon><Collection /></el-icon>
+        <template #title>範本庫</template>
+      </el-menu-item>
+
       <el-menu-item index="/settings">
         <el-icon><Setting /></el-icon>
         <template #title>系統設定</template>
@@ -45,7 +50,7 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { useUiStore } from '@/stores/ui'
-import { HomeFilled, Folder, Document, Setting } from '@element-plus/icons-vue'
+import { HomeFilled, Folder, Document, Setting, Collection } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const uiStore = useUiStore()
