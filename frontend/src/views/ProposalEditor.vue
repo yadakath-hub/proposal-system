@@ -1,6 +1,6 @@
 <template>
-  <div class="proposal-editor h-screen flex flex-col bg-gray-100">
-    <!-- 頂部工具列 -->
+  <div class="proposal-editor">
+    <!-- Top toolbar -->
     <ProposalHeader
       :project="project"
       :progress="proposalStore.progress"
@@ -10,13 +10,10 @@
       @export="showExportDialog = true"
     />
 
-    <!-- 主體三欄區域 -->
-    <div class="flex-1 flex overflow-hidden">
-      <!-- 左側：章節樹 -->
-      <div
-        class="section-tree-panel bg-white border-r overflow-hidden flex flex-col"
-        :style="{ width: `${proposalStore.panelWidths.sectionTree}px` }"
-      >
+    <!-- Three-panel body -->
+    <div class="editor-body">
+      <!-- Left: Section tree -->
+      <aside class="section-panel" :style="{ width: leftPanelWidth + 'px' }">
         <SectionTree
           :sections="proposalStore.sectionTree"
           :current-section="proposalStore.currentSection"
@@ -25,10 +22,14 @@
           @add="handleAddSection"
           @delete="handleDeleteSection"
         />
-      </div>
+        <div
+          class="resize-handle resize-handle-right"
+          @mousedown="startResize('left', $event)"
+        />
+      </aside>
 
-      <!-- 中間：編輯區 -->
-      <div class="editor-panel flex-1 flex flex-col overflow-hidden">
+      <!-- Center: Editor -->
+      <main class="content-panel">
         <SectionEditorPanel
           v-if="proposalStore.currentSection"
           :section="proposalStore.currentSection"
@@ -36,45 +37,46 @@
           @save="handleSaveSection"
           @generate="handleGenerate"
         />
-        <div v-else class="flex-1 flex items-center justify-center text-gray-400">
-          <div class="text-center">
-            <el-icon :size="64"><DocumentAdd /></el-icon>
-            <p class="mt-4">請從左側選擇章節開始編輯</p>
-          </div>
+        <div v-else class="empty-state">
+          <el-icon :size="64" class="empty-icon"><DocumentAdd /></el-icon>
+          <h3>請選擇或建立章節</h3>
+          <p>從左側選擇章節開始編輯，或點擊「匯入章節架構」快速建立</p>
+          <el-button type="primary" @click="showImportDialog = true">
+            匯入章節架構
+          </el-button>
         </div>
-      </div>
+      </main>
 
-      <!-- 右側：預覽區 -->
-      <div
-        class="preview-panel bg-white border-l overflow-hidden"
-        :style="{ width: `${proposalStore.panelWidths.preview}px` }"
-      >
+      <!-- Right: Preview -->
+      <aside class="preview-panel" :style="{ width: rightPanelWidth + 'px' }">
+        <div
+          class="resize-handle resize-handle-left"
+          @mousedown="startResize('right', $event)"
+        />
         <ContentPreview
           :section="proposalStore.currentSection"
           :mode="previewMode"
           @change-mode="previewMode = $event"
         />
-      </div>
+      </aside>
     </div>
 
-    <!-- 底部統計列 -->
+    <!-- Bottom stats -->
     <ProposalFooter :stats="proposalStore.stats" />
 
-    <!-- 匯入章節架構 Dialog -->
+    <!-- Dialogs -->
     <ImportStructureDialog
       v-model:visible="showImportDialog"
       :project-id="projectId"
       @imported="handleStructureImported"
     />
 
-    <!-- 需求分析 Dialog -->
     <RequirementAnalyzeDialog
       v-model:visible="showRequirementDialog"
       :project-id="projectId"
       @analyzed="handleRequirementAnalyzed"
     />
 
-    <!-- 匯出 Dialog -->
     <ExportDialog
       v-model:visible="showExportDialog"
       :project-id="projectId"
@@ -84,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProposalStore } from '@/stores/proposal'
 import { useProjectStore } from '@/stores/project'
@@ -108,11 +110,61 @@ const projectStore = useProjectStore()
 const projectId = computed(() => route.params.projectId)
 const project = computed(() => projectStore.currentProject)
 
+// Panel widths (resizable)
+const leftPanelWidth = ref(280)
+const rightPanelWidth = ref(360)
+const previewMode = ref('render')
+
+// Dialogs
 const showImportDialog = ref(false)
 const showRequirementDialog = ref(false)
 const showExportDialog = ref(false)
-const previewMode = ref('render')
 
+// Drag resize
+let isResizing = false
+let resizeTarget = ''
+let startX = 0
+let startWidth = 0
+
+function startResize(target, e) {
+  isResizing = true
+  resizeTarget = target
+  startX = e.clientX
+  startWidth = target === 'left' ? leftPanelWidth.value : rightPanelWidth.value
+
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+function handleResize(e) {
+  if (!isResizing) return
+
+  const diff = e.clientX - startX
+  const newWidth = resizeTarget === 'left'
+    ? startWidth + diff
+    : startWidth - diff
+
+  const minWidth = 200
+  const maxWidth = 500
+
+  if (resizeTarget === 'left') {
+    leftPanelWidth.value = Math.max(minWidth, Math.min(maxWidth, newWidth))
+  } else {
+    rightPanelWidth.value = Math.max(minWidth, Math.min(maxWidth, newWidth))
+  }
+}
+
+function stopResize() {
+  isResizing = false
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
+// Data loading
 async function loadData() {
   try {
     await projectStore.fetchProject(projectId.value)
@@ -120,7 +172,6 @@ async function loadData() {
     proposalStore.currentProject = projectStore.currentProject
     proposalStore.buildSectionTree(projectStore.sections)
 
-    // 自動選擇第一個章節
     if (proposalStore.sectionTree.length > 0 && !proposalStore.currentSection) {
       proposalStore.setCurrentSection(proposalStore.sectionTree[0])
     }
@@ -142,7 +193,6 @@ async function handleReorder(items) {
 }
 
 function handleAddSection() {
-  // Navigate back to project detail to use the section form
   router.push(`/projects/${projectId.value}`)
 }
 
@@ -164,7 +214,6 @@ async function handleSaveSection(data) {
     await projectStore.updateSection(data.id, {
       requirement_text: data.requirement_text
     })
-    // If content changed, create a new version
     if (data.content) {
       const { sectionApi } = await import('@/api/sections')
       const versionResp = await sectionApi.createVersion(data.id, {
@@ -181,7 +230,6 @@ async function handleSaveSection(data) {
 }
 
 function handleGenerate() {
-  // Navigate to section editor with AI panel
   if (proposalStore.currentSection) {
     router.push(`/projects/${projectId.value}/sections/${proposalStore.currentSection.id}`)
   }
@@ -200,6 +248,12 @@ onMounted(() => {
   loadData()
 })
 
+onBeforeUnmount(() => {
+  // Cleanup any lingering resize listeners
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+})
+
 watch(projectId, () => {
   if (projectId.value) {
     loadData()
@@ -209,7 +263,109 @@ watch(projectId, () => {
 
 <style scoped>
 .proposal-editor {
-  --header-height: 56px;
-  --footer-height: 48px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f7fa;
+}
+
+/* Three-panel body */
+.editor-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.section-panel,
+.preview-panel {
+  position: relative;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.section-panel {
+  border-right: 1px solid var(--border-color);
+}
+
+.preview-panel {
+  border-left: 1px solid var(--border-color);
+}
+
+.content-panel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Resize handles */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background 0.15s;
+}
+
+.resize-handle:hover {
+  background: #1890ff;
+}
+
+.resize-handle-right {
+  right: -2px;
+}
+
+.resize-handle-left {
+  left: -2px;
+}
+
+/* Empty state */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  padding: 40px;
+  text-align: center;
+}
+
+.empty-icon {
+  color: #d9d9d9;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  font-size: 18px;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.empty-state p {
+  margin: 0 0 24px;
+  max-width: 300px;
+}
+
+/* Responsive */
+@media (max-width: 1280px) {
+  .section-panel {
+    width: 240px !important;
+  }
+
+  .preview-panel {
+    width: 300px !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .preview-panel {
+    display: none;
+  }
 }
 </style>

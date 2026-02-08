@@ -1,12 +1,12 @@
 <template>
-  <el-header class="bg-white border-b border-gray-200 flex items-center justify-between px-6">
-    <div class="flex items-center">
+  <div class="header-content">
+    <div class="header-left">
       <el-button
         :icon="uiStore.sidebarCollapsed ? Expand : Fold"
         text
         @click="uiStore.toggleSidebar"
       />
-      <el-breadcrumb separator="/" class="ml-4">
+      <el-breadcrumb separator="/" class="ml-3">
         <el-breadcrumb-item :to="{ path: '/dashboard' }">首頁</el-breadcrumb-item>
         <el-breadcrumb-item v-if="route.meta.title">
           {{ route.meta.title }}
@@ -14,13 +14,13 @@
       </el-breadcrumb>
     </div>
 
-    <div class="flex items-center gap-4">
+    <div class="header-right">
       <el-dropdown trigger="click">
-        <span class="flex items-center cursor-pointer">
+        <span class="user-dropdown">
           <el-avatar :size="32" class="bg-blue-500">
             {{ authStore.userName?.charAt(0)?.toUpperCase() || 'U' }}
           </el-avatar>
-          <span class="ml-2 text-gray-700">{{ authStore.userName }}</span>
+          <span class="user-name">{{ authStore.userName }}</span>
           <el-icon class="ml-1"><ArrowDown /></el-icon>
         </span>
         <template #dropdown>
@@ -34,7 +34,7 @@
         </template>
       </el-dropdown>
     </div>
-  </el-header>
+  </div>
 </template>
 
 <script setup>
@@ -51,3 +51,43 @@ function handleLogout() {
   authStore.logout()
 }
 </script>
+
+<style scoped>
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-dropdown {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.user-dropdown:hover {
+  background: #f5f5f5;
+}
+
+.user-name {
+  margin-left: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+</style>

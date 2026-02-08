@@ -1,24 +1,24 @@
 <template>
-  <footer class="h-12 bg-white border-t px-6 flex items-center justify-between">
-    <div class="flex items-center gap-8">
-      <div class="flex items-center gap-2">
-        <span class="text-2xl font-bold text-green-600">{{ stats.completed }}</span>
-        <span class="text-sm text-gray-500">已完成</span>
+  <footer class="editor-footer">
+    <div class="stats-left">
+      <div class="stat-item stat-completed">
+        <span class="stat-value">{{ stats.completed }}</span>
+        <span class="stat-label">已完成</span>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="text-2xl font-bold text-blue-600">{{ stats.generating }}</span>
-        <span class="text-sm text-gray-500">生成中</span>
+      <div class="stat-item stat-generating">
+        <span class="stat-value">{{ stats.generating }}</span>
+        <span class="stat-label">生成中</span>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="text-2xl font-bold text-gray-400">{{ stats.pending }}</span>
-        <span class="text-sm text-gray-500">未開始</span>
+      <div class="stat-item stat-pending">
+        <span class="stat-value">{{ stats.pending }}</span>
+        <span class="stat-label">未開始</span>
       </div>
     </div>
 
-    <div class="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg">
+    <div class="page-estimate">
       <el-icon><Document /></el-icon>
       <span>估計總頁數</span>
-      <span class="text-xl font-bold">{{ stats.estimatedPages.toFixed(1) }}</span>
+      <span class="page-count">{{ stats.estimatedPages.toFixed(1) }}</span>
       <span>頁</span>
     </div>
   </footer>
@@ -39,3 +39,65 @@ defineProps({
   }
 })
 </script>
+
+<style scoped>
+.editor-footer {
+  height: 48px;
+  background: #fff;
+  border-top: 1px solid var(--border-color);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.stats-left {
+  display: flex;
+  gap: 32px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.stat-completed .stat-value {
+  color: #52c41a;
+}
+
+.stat-generating .stat-value {
+  color: #1890ff;
+}
+
+.stat-pending .stat-value {
+  color: var(--text-secondary);
+}
+
+.page-estimate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #262626;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.page-count {
+  font-size: 20px;
+  font-weight: 600;
+}
+</style>
